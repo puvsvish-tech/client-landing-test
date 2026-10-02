@@ -7,24 +7,27 @@ export default {
     }
 
     try {
-      if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
-        return Response.json({
-          success: false,
-          error: "Missing Cloudflare secret",
-          hasToken: Boolean(env.TELEGRAM_BOT_TOKEN),
-          hasChatId: Boolean(env.TELEGRAM_CHAT_ID)
-        }, { status: 500 });
-      }
-
       const data = await request.json();
 
-      const message =
+      const lead = {
+        name: data.name || "Не вказано",
+        phone: data.phone || "Не вказано",
+        dance: data.dance || "Не обрано",
+        utm_source: data.utm_source || "",
+        utm_medium: data.utm_medium || "",
+        utm_campaign: data.utm_campaign || "",
+        page: data.page || ""
+      };
+
+      // TELEGRAM
+      const telegramMessage =
 `🔔 Нова заявка з сайту
 
-Ім'я: ${data.name || "Не вказано"}
-Телефон: ${data.phone || "Не вказано"}`;
+Ім'я: ${lead.name}
+Телефон: ${lead.phone}
+Напрям: ${lead.dance}`;
 
-      const response = await fetch(
+      const telegramRequest = fetch(
         `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
         {
           method: "POST",
@@ -33,18 +36,34 @@ export default {
           },
           body: JSON.stringify({
             chat_id: env.TELEGRAM_CHAT_ID,
-            text: message
+            text: telegramMessage
           })
         }
       );
 
-      const telegram = await response.json();
+      // GOOGLE SHEETS
+      const sheetsRequest = fetch(env.GOOGLE_SHEETS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(lead)
+      });
 
-      if (!response.ok || !telegram.ok) {
-        return Response.json({
-          success: false,
-          telegram
-        }, { status: 502 });
+      const [telegramResponse, sheetsResponse] = await Promise.all([
+        telegramRequest,
+        sheetsRequest
+      ]);
+
+      const telegramResult = await telegramResponse.json();
+      const sheetsResult = await sheetsResponse.json();
+
+      if (!telegramResponse.ok || !telegramResult.ok) {
+        throw new Error("Telegram error");
+      }
+
+      if (!sheetsResponse.ok || !sheetsResult.success) {
+        throw new Error("Google Sheets error");
       }
 
       return Response.json({
@@ -52,10 +71,13 @@ export default {
       });
 
     } catch (error) {
-      return Response.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
+      return Response.json(
+        {
+          success: false,
+          error: error.message
+        },
+        { status: 500 }
+      );
     }
   }
 };
