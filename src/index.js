@@ -7,18 +7,24 @@ export default {
     }
 
     try {
-      const data = await request.json();
+      if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+        return Response.json({
+          success: false,
+          error: "Missing Cloudflare secret",
+          hasToken: Boolean(env.TELEGRAM_BOT_TOKEN),
+          hasChatId: Boolean(env.TELEGRAM_CHAT_ID)
+        }, { status: 500 });
+      }
 
-      const name = data.name || "Не вказано";
-      const phone = data.phone || "Не вказано";
+      const data = await request.json();
 
       const message =
 `🔔 Нова заявка з сайту
 
-Ім'я: ${name}
-Телефон: ${phone}`;
+Ім'я: ${data.name || "Не вказано"}
+Телефон: ${data.phone || "Не вказано"}`;
 
-      const telegramResponse = await fetch(
+      const response = await fetch(
         `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
         {
           method: "POST",
@@ -32,8 +38,13 @@ export default {
         }
       );
 
-      if (!telegramResponse.ok) {
-        throw new Error("Telegram error");
+      const telegram = await response.json();
+
+      if (!response.ok || !telegram.ok) {
+        return Response.json({
+          success: false,
+          telegram
+        }, { status: 502 });
       }
 
       return Response.json({
@@ -41,10 +52,10 @@ export default {
       });
 
     } catch (error) {
-      return Response.json(
-        { success: false },
-        { status: 500 }
-      );
+      return Response.json({
+        success: false,
+        error: error.message
+      }, { status: 500 });
     }
   }
 };
