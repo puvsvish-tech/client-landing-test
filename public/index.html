@@ -391,7 +391,7 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
 /* ---------- Ambient animated background (pure CSS, compositor-only) ---------- */
 .ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;contain:strict}
 .ambient i{position:absolute;display:block;border-radius:50%;will-change:transform}
-.ambient .glow{width:min(18vmax,250px);height:min(18vmax,250px);left:0;top:0;margin:calc(min(18vmax,250px) / -2) 0 0 calc(min(18vmax,250px) / -2);background:radial-gradient(closest-side,rgba(201,162,77,.16),rgba(201,162,77,.05) 50%,transparent);opacity:0;transition:opacity .8s}
+.ambient .glow{width:min(9vmax,125px);height:min(9vmax,125px);left:0;top:0;margin:calc(min(9vmax,125px) / -2) 0 0 calc(min(9vmax,125px) / -2);background:radial-gradient(closest-side,rgba(201,162,77,.16),rgba(201,162,77,.05) 50%,transparent);opacity:0;transition:opacity .8s}
 .cur-on .ambient .glow{opacity:1}
 .fx{position:fixed;inset:0;width:100%;height:100%;z-index:120;pointer-events:none;mix-blend-mode:screen}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -405,7 +405,7 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
 @keyframes patBreath{from{opacity:.13}to{opacity:.24}}
 /* the cursor light reveals a brighter copy of the ornament underneath it */
 .ambient .glow{overflow:hidden;-webkit-mask:radial-gradient(closest-side,#000 0%,rgba(0,0,0,.6) 45%,transparent 100%);mask:radial-gradient(closest-side,#000 0%,rgba(0,0,0,.6) 45%,transparent 100%)}
-.glow .gp{position:absolute;left:calc(min(18vmax,250px) / 2);top:calc(min(18vmax,250px) / 2);width:100vw;height:100vh;will-change:transform}
+.glow .gp{position:absolute;left:calc(min(9vmax,125px) / 2);top:calc(min(9vmax,125px) / 2);width:100vw;height:100vh;will-change:transform}
 .glow .gp .pat{opacity:.7}
 /* ---------- Easter eggs: phrases drawn in the same thin gold line as the ornament.
    Letters assemble out of the pattern only where the cursor light falls. ---------- */
@@ -413,10 +413,9 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
 .egg.b{top:auto;bottom:clamp(22px,3vw,46px)}
 .egg .wd{display:inline-block;white-space:nowrap}
 .egg .ch{display:inline-block;opacity:0}
-@media (max-width:760px){.egg{left:16px;max-width:calc(100% - 32px);font-size:25px;top:14px}.egg.b{display:none}}
+@media (max-width:760px){.egg{display:none}}  /* phones: no hidden phrases, keep the page calm */
 
 /* ---------- Mobile polish ---------- */
-.glow-on .ambient .glow{opacity:1}
 @media (max-width:760px){
   body::after{display:none}                       /* film grain: skip the full-screen blend on phones */
   .mcta .btn::before{animation:ctaShine 5.5s ease-in-out 2.5s infinite}
@@ -974,25 +973,8 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
     });
   }
 
-  /* Touch screens: the ornament light follows the finger while it touches the screen,
-     and otherwise drifts to whichever hidden phrase is assembling. Runs only while moving. */
+  /* Touch screens have no cursor light; easter eggs assemble on scroll instead. */
   var touchMode=!w.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  var gTo=function(){}, gShow=function(){}, lastTouch=0;
-  if(touchMode&&!reduce){
-    var glowEl=$('.ambient .glow'), gpEl=$('.ambient .gp'), gX=0, gY=0, gtX=0, gtY=0, gOn=false, gRun=false, gHide=0;
-    var gLoop=function(){
-      gX+=(gtX-gX)*.16; gY+=(gtY-gY)*.16;
-      glowEl.style.transform='translate3d('+gX.toFixed(1)+'px,'+gY.toFixed(1)+'px,0)';
-      gpEl.style.transform='translate3d('+(-gX).toFixed(1)+'px,'+(-gY).toFixed(1)+'px,0)';
-      if(Math.abs(gtX-gX)+Math.abs(gtY-gY)>.6) requestAnimationFrame(gLoop); else gRun=false;
-    };
-    gTo=function(x,y,jump){ gtX=x; gtY=y; if(jump){ gX=x; gY=y; } if(!gRun){ gRun=true; requestAnimationFrame(gLoop); } };
-    gShow=function(on){ if(on!==gOn){ gOn=on; root.classList.toggle('glow-on',on); } };
-    w.addEventListener('touchstart',function(e){ var t=e.touches[0]; lastTouch=Date.now(); clearTimeout(gHide); gTo(t.clientX,t.clientY,!gOn); gShow(true); },{passive:true});
-    w.addEventListener('touchmove',function(e){ var t=e.touches[0]; lastTouch=Date.now(); gTo(t.clientX,t.clientY); },{passive:true});
-    w.addEventListener('touchend',function(){ lastTouch=Date.now(); clearTimeout(gHide); gHide=setTimeout(function(){ if(Date.now()-lastTouch>=850) gShow(false); if(typeof eKick==='function') eKick(); },900); },{passive:true});
-  }
-
   /* Easter eggs: each letter starts scattered and invisible, and assembles into place
      as the cursor light (or a tap on touch screens) comes near it. Letter positions are
      cached, so a frame is just arithmetic plus opacity/transform writes. */
@@ -1020,7 +1002,7 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
       if(!reduce) o.el.style.transform='translate('+(o.dx*k).toFixed(1)+'px,'+(o.dy*k).toFixed(1)+'px) rotate('+(o.r*k).toFixed(1)+'deg) scale('+(0.6+0.4*o.v).toFixed(3)+')';
     }
     function eFrame(){
-      var sx=w.scrollX, sy=w.scrollY, vh=w.innerHeight, moving=false, cxS=0, cyS=0, cW=0;
+      var sx=w.scrollX, sy=w.scrollY, vh=w.innerHeight, moving=false;
       for(var i=0;i<LT.length;i++){
         var o=LT[i]; if(o.hid) continue;
         var px=o.x-sx, py=o.y-sy, t=0;
@@ -1030,14 +1012,9 @@ h3{margin:0;font:500 clamp(28px,2.8vw,40px)/1.08 var(--serif);letter-spacing:-.0
           var band=vh*.44+(px/w.innerWidth-.5)*80, dist=Math.abs(py-band);
           t=Math.max(t,Math.min(1,Math.max(0,(vh*.2-dist)/(vh*.09))));
         }
-        if(touchMode&&o.v>.35){ cxS+=px*o.v; cyS+=py*o.v; cW+=o.v; }
         var diff=t-o.v;
         if(Math.abs(diff)>.004){ o.v+=diff*(diff>0?.14:.08); moving=true; eApply(o); }
         else if(o.v!==t){ o.v=t; eApply(o); }
-      }
-      /* light follows the phrase while no finger is on the screen */
-      if(touchMode&&Date.now()-lastTouch>850){
-        if(cW>2){ gTo(cxS/cW,cyS/cW,!root.classList.contains('glow-on')); gShow(true); } else gShow(false);
       }
       if(moving) requestAnimationFrame(eFrame); else eRun=false;
     }
